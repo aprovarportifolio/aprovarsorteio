@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel do Sorteio</title>
+<style>
+:root{--cor:#f59e0b;--bg:#111827;--card:#1f2937;--txt:#f9fafb;--mut:#9ca3af}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);padding:16px}
+.w{max-width:760px;margin:auto}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+input{flex:1;min-width:160px;padding:11px;border-radius:10px;border:1px solid #374151;background:#0b1220;color:var(--txt);font-size:1rem}
+button{background:var(--cor);color:#000;font-weight:700;border:0;border-radius:10px;padding:11px 14px;cursor:pointer;font-size:.95rem}
+button.sec{background:#374151;color:var(--txt)}
+.st{color:var(--mut);margin:6px 0}
+.p{background:var(--card);border-radius:10px;padding:10px 12px;margin:6px 0;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.p.v{border-left:4px solid #22c55e}
+.p small{color:var(--mut);display:block}
+#win{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);align-items:center;justify-content:center;text-align:center;flex-direction:column;padding:20px}
+#wn{font-size:2.4rem;font-weight:800;color:var(--cor)}
+#login{max-width:320px;margin:30vh auto;text-align:center}
+</style>
+</head>
+<body>
+<div id="login"><h2>Painel da equipe</h2><input id="pin" type="password" placeholder="PIN" style="width:100%"><button style="width:100%;margin-top:10px" onclick="entrar()">Entrar</button></div>
+
+<div class="w" id="app" style="display:none">
+<h2>Painel do Sorteio</h2>
+<div class="st" id="cont"></div>
+<div class="bar">
+<input id="q" placeholder="Buscar nome ou @" oninput="render()">
+<button class="sec" onclick="carregar()">Atualizar</button>
+<button class="sec" onclick="exportar()">Exportar CSV</button>
+<button onclick="sortear()">🎁 Sortear</button>
+</div>
+<div id="lista"></div>
+</div>
+
+<div id="win"><div class="st" id="wl">Sorteando...</div><div id="wn"></div><div class="st" id="wi"></div><button class="sec" style="margin-top:24px" onclick="fechar()">Fechar</button></div>
+
+<script>
+// ===== CONFIGURE AQUI =====
+const API_URL = 'https://script.google.com/macros/s/AKfycbxqaQVj67eQfgNZy76s_OSzTHLg7C38-l1OjnHGiURY-6soYqENp-sBxleRKkwvSOXD/exec';      // mesma URL do Apps Script usada no index.html
+const PIN = '080569';      // troque o PIN
+// ==========================
+let dados = [];
+function entrar(){ if(document.getElementById('pin').value === PIN){ login.style.display='none'; app.style.display='block'; carregar(); } else alert('PIN incorreto'); }
+
+async function carregar(){
+  if(API_URL){
+    try{ dados = await (await fetch(API_URL)).json(); }catch(e){ alert('Não foi possível carregar a lista.'); }
+  } else dados = JSON.parse(localStorage.getItem('demo') || '[]');
+  render();
+}
+function render(){
+  const t = q.value.toLowerCase();
+  const l = dados.filter(p => (p.nome+' '+p.instagram).toLowerCase().includes(t));
+  cont.textContent = dados.length + ' inscritos · ' + dados.filter(p=>p.validado).length + ' validados';
+  lista.innerHTML = '';
+  l.slice().reverse().forEach(p => {
+    const d = document.createElement('div'); d.className = 'p' + (p.validado ? ' v' : '');
+    d.innerHTML = '<div><b></b><small></small></div><button></button>';
+    d.querySelector('b').textContent = p.nome;
+    d.querySelector('small').textContent = '@' + p.instagram + ' · ' + p.whatsapp;
+    const b = d.querySelector('button'); b.textContent = p.validado ? 'Desvalidar' : 'Validar'; b.className = p.validado ? 'sec' : '';
+    b.onclick = () => validar(p);
+    lista.appendChild(d);
+  });
+}
+async function validar(p){
+  p.validado = !p.validado; render();
+  if(API_URL){
+    fetch(API_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify({action:'validate', id:p.id, validado:p.validado})});
+  } else localStorage.setItem('demo', JSON.stringify(dados));
+}
+function sortear(){
+  const v = dados.filter(p => p.validado);
+  if(!v.length) return alert('Nenhum participante validado.');
+  win.style.display = 'flex'; wl.textContent = 'Sorteando...'; wn.textContent = ''; wi.textContent = '';
+  const r = new Uint32Array(1); crypto.getRandomValues(r);
+  const g = v[r[0] % v.length];
+  let i = 0;
+  const iv = setInterval(() => { wn.textContent = v[i++ % v.length].nome; }, 80);
+  setTimeout(() => { clearInterval(iv); wl.textContent = '🎉 Ganhador(a):'; wn.textContent = g.nome; wi.textContent = '@' + g.instagram + ' · ' + g.whatsapp; }, 3500);
+}
+function fechar(){ win.style.display = 'none'; }
+function exportar(){
+  const c = ['nome,instagram,whatsapp,validado'].concat(dados.map(p => [p.nome,p.instagram,p.whatsapp,p.validado?'sim':'não'].map(x => '"'+String(x).replace(/"/g,'""')+'"').join(',')));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff'+c.join('\n')], {type:'text/csv'}));
+  a.download = 'participantes.csv'; a.click();
+}
+</script>
+</body>
+</html>

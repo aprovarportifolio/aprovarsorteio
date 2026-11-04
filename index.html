@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sorteio Kit EPI</title>
+<style>
+:root{--cor:#f59e0b;--bg:#111827;--card:#1f2937;--txt:#f9fafb;--mut:#9ca3af}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);padding:20px;display:flex;justify-content:center}
+main{width:100%;max-width:440px}
+h1{font-size:1.6rem;margin:.2em 0}
+.sub{color:var(--mut);margin-bottom:20px}
+.passo{background:var(--card);border-radius:12px;padding:14px;margin:10px 0;display:flex;gap:12px;align-items:flex-start}
+.n{background:var(--cor);color:#000;font-weight:700;border-radius:50%;width:28px;height:28px;flex:none;display:grid;place-items:center}
+a.btn,button{display:block;width:100%;text-align:center;background:var(--cor);color:#000;font-weight:700;border:0;border-radius:10px;padding:14px;font-size:1rem;text-decoration:none;cursor:pointer;margin-top:10px}
+input{width:100%;padding:13px;border-radius:10px;border:1px solid #374151;background:#0b1220;color:var(--txt);font-size:1rem;margin-top:8px}
+label.ck{display:flex;gap:8px;font-size:.8rem;color:var(--mut);margin-top:12px}
+label.ck input{width:auto;margin:2px 0 0}
+small{color:var(--mut);font-size:.72rem;display:block;margin-top:18px}
+#ok{display:none;text-align:center;background:var(--card);padding:24px;border-radius:12px}
+</style>
+</head>
+<body>
+<main>
+<h1 id="titulo"></h1>
+<p class="sub">Participe e concorra a um <b>Kit EPI</b>!</p>
+
+<div class="passo"><div class="n">1</div><div>Siga <b id="ig1"></b> no Instagram<a class="btn" id="btnIg" target="_blank" rel="noopener">Abrir Instagram</a></div></div>
+<div class="passo"><div class="n">2</div><div>Poste uma foto nos <b>stories</b> marcando <b id="ig2"></b></div></div>
+<div class="passo"><div class="n">3</div><div>Preencha seus dados abaixo e mostre o story para nossa equipe</div></div>
+
+<form id="f">
+<input id="nome" placeholder="Seu nome" required>
+<input id="insta" placeholder="Seu @ do Instagram" required>
+<input id="zap" type="tel" placeholder="WhatsApp com DDD" required>
+<label class="ck"><input type="checkbox" id="lgpd" required> Autorizo o uso dos meus dados para fins do sorteio e contato da empresa (LGPD).</label>
+<button type="submit" id="enviar">Quero participar</button>
+</form>
+
+<div id="ok"><h2>Inscrição enviada! 🎉</h2><p>Agora é só mostrar seu story para a nossa equipe para validar sua participação.</p></div>
+
+<small>Promoção sem vínculo com o Instagram/Meta. Participação sujeita ao regulamento disponível no estande.</small>
+</main>
+<script>
+// ===== CONFIGURE AQUI =====
+const EMPRESA = 'Aprovar Engenharia Contra Incêndio e Emergências';
+const INSTAGRAM = 'aprovarps';   // sem @
+const INSTAGRAM_LINK = 'https://www.instagram.com/aprovarps?mdxt=MnUycGFqbjMzbWY1';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxqaQVj67eQfgNZy76s_OSzTHLg7C38-l1OjnHGiURY-6soYqENp-sBxleRKkwvSOXD/exec';                 // URL do Apps Script (veja o passo a passo)
+// ==========================
+document.getElementById('titulo').textContent = 'Sorteio ' + EMPRESA;
+document.title = 'Sorteio ' + EMPRESA;
+document.getElementById('ig1').textContent = '@' + INSTAGRAM;
+document.getElementById('ig2').textContent = '@' + INSTAGRAM;
+document.getElementById('btnIg').href = INSTAGRAM_LINK;
+
+document.getElementById('f').addEventListener('submit', async e => {
+  e.preventDefault();
+  const b = document.getElementById('enviar'); b.disabled = true; b.textContent = 'Enviando...';
+  const d = {
+    action: 'add',
+    nome: nome.value.trim(),
+    instagram: insta.value.trim().replace(/^@/, '').replace(/\s/g, ''),
+    whatsapp: zap.value.trim()
+  };
+  try {
+    if (API_URL) {
+      await fetch(API_URL, {method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'text/plain'}, body: JSON.stringify(d)});
+    } else { // modo teste (sem planilha)
+      const l = JSON.parse(localStorage.getItem('demo') || '[]');
+      l.push({id: Date.now() + '', data: new Date().toISOString(), validado: false, ...d});
+      localStorage.setItem('demo', JSON.stringify(l));
+    }
+    document.getElementById('f').style.display = 'none';
+    document.getElementById('ok').style.display = 'block';
+  } catch (err) {
+    alert('Erro ao enviar. Tente novamente.');
+    b.disabled = false; b.textContent = 'Quero participar';
+  }
+});
+</script>
+</body>
+</html>
