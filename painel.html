@@ -32,6 +32,7 @@ button.sec{background:#374151;color:var(--txt)}
 <input id="q" placeholder="Buscar nome ou @" oninput="render()">
 <button class="sec" onclick="carregar()">Atualizar</button>
 <button class="sec" onclick="exportar()">Exportar CSV</button>
+<button class="sec" onclick="apagarTodos()">Apagar todos</button>
 <button onclick="sortear()">🎁 Sortear</button>
 </div>
 <div id="lista"></div>
@@ -60,11 +61,12 @@ function render(){
   lista.innerHTML = '';
   l.slice().reverse().forEach(p => {
     const d = document.createElement('div'); d.className = 'p' + (p.validado ? ' v' : '');
-    d.innerHTML = '<div><b></b><small></small></div><button></button>';
+    d.innerHTML = '<div><b></b><small></small></div><div style="display:flex;gap:6px"><button></button><button class="sec x" title="Excluir">🗑</button></div>';
     d.querySelector('b').textContent = p.nome;
     d.querySelector('small').textContent = '@' + p.instagram + ' · ' + p.whatsapp;
     const b = d.querySelector('button'); b.textContent = p.validado ? 'Desvalidar' : 'Validar'; b.className = p.validado ? 'sec' : '';
     b.onclick = () => validar(p);
+    d.querySelector('.x').onclick = () => excluir(p);
     lista.appendChild(d);
   });
 }
@@ -73,6 +75,17 @@ async function validar(p){
   if(API_URL){
     fetch(API_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify({action:'validate', id:p.id, validado:p.validado})});
   } else localStorage.setItem('demo', JSON.stringify(dados));
+}
+function enviar(o){ if(API_URL) fetch(API_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(o)}); else localStorage.setItem('demo', JSON.stringify(dados)); }
+function excluir(p){
+  if(!confirm('Excluir ' + p.nome + ' (@' + p.instagram + ')?')) return;
+  dados = dados.filter(x => x.id !== p.id); render();
+  enviar({action:'delete', id:p.id});
+}
+function apagarTodos(){
+  if(prompt('Isso apaga TODOS os inscritos. Digite APAGAR para confirmar:') !== 'APAGAR') return;
+  dados = []; render();
+  enviar({action:'clear'});
 }
 function sortear(){
   const v = dados.filter(p => p.validado);
