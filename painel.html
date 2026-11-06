@@ -35,6 +35,11 @@ button.sec{background:#374151;color:var(--txt)}
 <button class="sec" onclick="apagarTodos()">Apagar todos</button>
 <button onclick="sortear()">🎁 Sortear</button>
 </div>
+<div class="bar" id="add">
+<input id="an" placeholder="Nome">
+<input id="ai" placeholder="@ do Instagram">
+<button onclick="adicionar()">+ Adicionar (já validado)</button>
+</div>
 <div id="lista"></div>
 </div>
 
@@ -63,7 +68,7 @@ function render(){
     const d = document.createElement('div'); d.className = 'p' + (p.validado ? ' v' : '');
     d.innerHTML = '<div><b></b><small></small></div><div style="display:flex;gap:6px"><button></button><button class="sec x" title="Excluir">🗑</button></div>';
     d.querySelector('b').textContent = p.nome;
-    d.querySelector('small').textContent = '@' + p.instagram + ' · ' + p.whatsapp;
+    d.querySelector('small').textContent = '@' + p.instagram + (p.whatsapp ? ' · ' + p.whatsapp : '');
     const b = d.querySelector('button'); b.textContent = p.validado ? 'Desvalidar' : 'Validar'; b.className = p.validado ? 'sec' : '';
     b.onclick = () => validar(p);
     d.querySelector('.x').onclick = () => excluir(p);
@@ -77,6 +82,14 @@ async function validar(p){
   } else localStorage.setItem('demo', JSON.stringify(dados));
 }
 function enviar(o){ if(API_URL) fetch(API_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(o)}); else localStorage.setItem('demo', JSON.stringify(dados)); }
+function adicionar(){
+  const nome = an.value.trim(), ig = ai.value.trim().replace(/^@/, '').replace(/\s/g, '');
+  if(!nome || !ig) return alert('Preencha nome e Instagram.');
+  const o = {action:'add', nome, instagram:ig, whatsapp:'', validado:true};
+  an.value = ''; ai.value = '';
+  if(API_URL){ enviar(o); setTimeout(carregar, 2000); }
+  else { dados.push({id:Date.now()+'', data:new Date().toISOString(), ...o}); enviar(o); render(); }
+}
 function excluir(p){
   if(!confirm('Excluir ' + p.nome + ' (@' + p.instagram + ')?')) return;
   dados = dados.filter(x => x.id !== p.id); render();
@@ -95,7 +108,7 @@ function sortear(){
   const g = v[r[0] % v.length];
   let i = 0;
   const iv = setInterval(() => { wn.textContent = v[i++ % v.length].nome; }, 80);
-  setTimeout(() => { clearInterval(iv); wl.textContent = '🎉 Ganhador(a):'; wn.textContent = g.nome; wi.textContent = '@' + g.instagram + ' · ' + g.whatsapp; }, 3500);
+  setTimeout(() => { clearInterval(iv); wl.textContent = '🎉 Ganhador(a):'; wn.textContent = g.nome; wi.textContent = '@' + g.instagram + (g.whatsapp ? ' · ' + g.whatsapp : ''); }, 3500);
 }
 function fechar(){ win.style.display = 'none'; }
 function exportar(){
